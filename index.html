@@ -58,6 +58,12 @@
             line-height: 1.6;
         }
         
+        #qr-placeholder {
+            max-width: 150px;
+            height: auto;
+            margin-top: 30px; /* Add some space above the QR code */
+        }
+        
         /* --- NEW TWO-CARD LAYOUT STYLES --- */
         #quiz-layout-container {
             display: none; /* Hidden by default */
@@ -412,6 +418,9 @@
             <h1>🎯 Desafío de Dinámica: Leyes de Newton</h1>
             <p>¡Pon a prueba tus conocimientos sobre las fuerzas y el movimiento! Resuelve 21 problemas sobre las Leyes de Newton, roce y más. <br>Cada respuesta correcta vale 10 puntos. ¡Mucha suerte!</p>
             <button class="btn btn-primary" id="start-btn" style="margin-top: 20px;">Iniciar Desafío</button>
+            
+            <!-- QR Code Placeholder -->
+            <img id="qr-placeholder" src="qr-code.png" alt="Código QR para más información">
         </div>
 
         <div id="quiz-layout-container">
@@ -673,7 +682,9 @@
             }
             
             document.getElementById('question-number').textContent = `Pregunta ${currentQuestion + 1} de ${selectedQuestions.length}`;
-            document.getElementById('question-text').innerHTML = question.text;
+            const questionTextElement = document.getElementById('question-text');
+            questionTextElement.innerHTML = question.text;
+            
             const equationDiv = document.getElementById('equation');
             equationDiv.innerHTML = question.equation;
 
@@ -701,7 +712,6 @@
             document.getElementById('next-btn').style.display = 'none';
             
             if (typeof MathJax !== 'undefined' && MathJax.typesetPromise) {
-                const questionTextElement = document.getElementById('question-text');
                 MathJax.typesetPromise([questionTextElement, equationDiv, optionsContainer, summaryContainer]);
             }
         }
