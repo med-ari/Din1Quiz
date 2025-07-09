@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desafío de Dinámica: Leyes de Newton</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --timer-ok: #28a745;
+            --timer-medium: #ffc107;
+            --timer-low: #ff6b6b;
+            --timer-paused: #4a90e2;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px; /* Increased width for two-card layout */
+            width: 100%;
+        }
+
+        #welcome-screen {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            text-align: center;
+            color: #333;
+            max-width: 800px; /* Keep welcome screen a manageable size */
+            margin: 0 auto;
+        }
+
+        #welcome-screen h1 {
+            font-size: 32px;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        #welcome-screen > p {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        
+        /* --- NEW TWO-CARD LAYOUT STYLES --- */
+        #quiz-layout-container {
+            display: none; /* Hidden by default */
+            gap: 25px;
+            align-items: flex-start;
+        }
+        
+        #main-quiz-card {
+            flex: 2;
+            min-width: 0;
+        }
+        
+        #summary-card {
+            flex: 1;
+            position: sticky; /* Makes it stick on scroll */
+            top: 20px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+        
+        .summary-block {
+            font-size: 15px;
+            line-height: 1.6;
+            text-align: left;
+        }
+        .summary-block strong {
+            color: #5a6fd8;
+            display: block;
+            margin-bottom: 10px;
+            font-size: 18px;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 8px;
+        }
+        .summary-block code {
+            background-color: #e9ecef;
+            border: 1px solid #ddd;
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        /* --- END NEW LAYOUT STYLES --- */
+
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .question-number {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .score-board {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .score-item {
+            text-align: center;
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            min-width: 75px;
+            position: relative;
+        }
+        
+        #score-animation-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .score-plus-emoji {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 20px;
+            font-weight: bold;
+            color: #28a745;
+            animation: fly-up-fade-out 1s ease-out forwards;
+        }
+
+        @keyframes fly-up-fade-out {
+            from { transform: translate(-50%, 0); opacity: 1; }
+            to { transform: translate(-50%, -60px); opacity: 0; }
+        }
+
+        .score-label {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        .score-value {
+            font-size: 22px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .timer {
+            position: relative;
+            width: 60px;
+            height: 60px;
+            cursor: pointer;
+        }
+
+        .timer-circle {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: background 0.3s ease;
+        }
+
+        .timer.ok .timer-circle { background: conic-gradient(var(--timer-ok) 0deg, var(--timer-ok) var(--progress, 0deg), #e9ecef var(--progress, 0deg)); }
+        .timer.medium-warning .timer-circle { background: conic-gradient(var(--timer-medium) 0deg, var(--timer-medium) var(--progress, 0deg), #e9ecef var(--progress, 0deg)); }
+        .timer.low-warning .timer-circle { background: conic-gradient(var(--timer-low) 0deg, var(--timer-low) var(--progress, 0deg), #e9ecef var(--progress, 0deg)); }
+        .timer.paused .timer-circle { background: conic-gradient(var(--timer-paused) 0deg, var(--timer-paused) 360deg, #e9ecef 360deg); }
+
+        .timer-inner {
+            width: 45px;
+            height: 45px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 16px;
+            transition: color 0.3s ease;
+        }
+
+        .timer.ok .timer-inner { color: var(--timer-ok); }
+        .timer.medium-warning .timer-inner { color: var(--timer-medium); }
+        .timer.low-warning .timer-inner { color: var(--timer-low); }
+        .timer.paused .timer-inner { color: var(--timer-paused); font-size: 20px; }
+
+        .sound-toggle {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .sound-toggle:hover {
+            background: #e9ecef;
+        }
+
+        .sound-toggle.muted {
+            background: #dc3545;
+            color: white;
+            border-color: #dc3545;
+        }
+        
+        .question-container { margin-bottom: 30px; }
+        .question-text { font-size: 20px; color: #333; margin-bottom: 20px; line-height: 1.6; }
+        .equation { background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0; text-align: center; font-size: 24px; border-left: 4px solid #667eea; }
+        .equation svg { max-width: 100%; height: auto; }
+        .options-container { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 30px; }
+
+        .option-button {
+            padding: 15px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 16px;
+            text-align: left;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+        }
+
+        .option-button:hover:not(.disabled) {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .option-button.correct {
+            border-color: #28a745;
+            background: #d4edda;
+            color: #155724;
+            animation: correctPulse 0.6s ease;
+        }
+
+        @keyframes correctPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .option-button.incorrect {
+            border-color: #dc3545;
+            background: #f8d7da;
+            color: #721c24;
+            animation: incorrectShake 0.6s ease;
+        }
+        
+        @keyframes incorrectShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .option-button.disabled { pointer-events: none; opacity: 0.8; }
+        .option-letter { font-weight: bold; margin-right: 10px; color: #667eea; }
+        .correct-emoji { margin-left: auto; font-size: 20px; }
+
+        .explanation { background: #e8f4f8; border-left: 4px solid #17a2b8; padding: 20px; border-radius: 10px; margin: 20px 0; display: none; }
+        .explanation.show { display: block; animation: slideDown 0.3s ease; }
+        .explanation h4 { color: #17a2b8; margin-bottom: 10px; }
+
+        .controls { display: flex; justify-content: center; gap: 15px; }
+        .btn { padding: 12px 30px; border: none; border-radius: 25px; cursor: pointer; font-size: 16px; font-weight: bold; transition: all 0.3s ease; }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-primary:hover { background: #5a6fd8; transform: translateY(-2px); }
+        
+        .game-over { text-align: center; display: none; padding: 20px; }
+        .game-over.show { display: block; }
+        .final-score { font-size: 48px; font-weight: bold; color: #667eea; margin: 20px 0; }
+        .performance-message { font-size: 24px; margin-bottom: 20px; }
+        .performance-excellent { color: #28a745; }
+        .performance-good { color: #17a2b8; }
+        .performance-needs-improvement { color: #ffc107; }
+        .performance-poor { color: #dc3545; }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .timer.low-warning:not(.paused) .timer-circle {
+            animation: pulse 1s infinite;
+        }
+
+        .progress-bar { width: 100%; height: 8px; background: #e9ecef; border-radius: 4px; margin-bottom: 20px; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #667eea, #764ba2); border-radius: 4px; transition: width 0.3s ease; }
+
+        /* --- Responsive Styles for Mobile & Tablet --- */
+        @media (max-width: 1024px) {
+            .container {
+                max-width: 800px; /* Allow it to be wider on tablet */
+            }
+            #quiz-layout-container {
+                flex-direction: column;
+            }
+            #summary-card {
+                position: static; /* Remove sticky positioning */
+                width: 100%;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+                align-items: flex-start;
+            }
+
+            .container {
+                padding: 0;
+            }
+            
+            .card, #welcome-screen {
+                padding: 20px 15px;
+                border-radius: 15px;
+            }
+
+            .game-header {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .question-number {
+                font-size: 16px;
+            }
+            
+            .score-board {
+                gap: 10px;
+            }
+            
+            .score-item {
+                padding: 5px 8px;
+                min-width: 65px;
+            }
+
+            .score-value {
+                font-size: 18px;
+            }
+            
+            .timer {
+                width: 50px;
+                height: 50px;
+            }
+
+            .timer-inner {
+                width: 38px;
+                height: 38px;
+                font-size: 14px;
+            }
+            
+            .question-text {
+                font-size: 18px;
+            }
+
+            .options-container {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .option-button {
+                padding: 12px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="welcome-screen">
+            <h1>🎯 Desafío de Dinámica: Leyes de Newton</h1>
+            <p>¡Pon a prueba tus conocimientos sobre las fuerzas y el movimiento! Resuelve 21 problemas sobre las Leyes de Newton, roce y más. <br>Cada respuesta correcta vale 10 puntos. ¡Mucha suerte!</p>
+            <button class="btn btn-primary" id="start-btn" style="margin-top: 20px;">Iniciar Desafío</button>
+        </div>
+
+        <div id="quiz-layout-container">
+            <div id="main-quiz-card" class="card">
+                <div class="game-header">
+                    <div class="question-number" id="question-number"></div>
+                    <div class="score-board">
+                        <div class="score-item">
+                            <div class="score-label">Puntuación</div>
+                            <div class="score-value">
+                                🪙 <span id="score">0</span>
+                            </div>
+                            <div id="score-animation-container"></div>
+                        </div>
+                        <div class="score-item">
+                            <div class="score-label">Correctas</div>
+                            <div class="score-value" id="correct">0</div>
+                        </div>
+                        <div class="timer" id="timer-control">
+                            <div class="timer-circle">
+                                <div class="timer-inner" id="timer">120</div>
+                            </div>
+                        </div>
+                        <div class="sound-toggle" id="soundToggle" onclick="toggleSound()">🔊</div>
+                    </div>
+                </div>
+
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress"></div>
+                </div>
+
+                <div class="question-container">
+                    <div class="question-text" id="question-text"></div>
+                    <div class="equation" id="equation"></div>
+                </div>
+
+                <div class="options-container" id="options-container">
+                    <!-- Options will be dynamically generated -->
+                </div>
+
+                <div class="explanation" id="explanation">
+                    <h4>Explicación:</h4>
+                    <p id="explanation-text"></p>
+                </div>
+
+                <div class="controls">
+                    <button class="btn btn-primary" id="next-btn" onclick="nextQuestion()" style="display: none;">
+                        Siguiente Pregunta
+                    </button>
+                </div>
+            </div>
+
+            <div id="summary-card" class="card" style="display: none;">
+                <div id="summary-container" class="summary-block">
+                    <!-- Summary content will be injected here -->
+                </div>
+            </div>
+        </div>
+
+        <div id="game-over-container" class="card" style="display: none;">
+            <div class="game-over" id="game-over">
+                <h2>🎉 ¡Juego Terminado!</h2>
+                <div class="final-score" id="final-score">0/21</div>
+                <div class="performance-message" id="performance-message"></div>
+                <div class="controls">
+                    <button class="btn btn-primary" onclick="restartGame()">Jugar de Nuevo</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Game state
+        let currentQuestion = 0;
+        let score = 0;
+        let correctAnswers = 0;
+        let timeLeft = 120;
+        let timerInterval;
+        let questionAnswered = false;
+        let selectedQuestions = [];
+        let isPaused = false;
+        let soundEnabled = true;
+        let audioContext = null;
+
+        function initAudio() {
+            if (soundEnabled && !audioContext) {
+                try {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (e) {
+                    console.error("Web Audio API is not supported in this browser");
+                    soundEnabled = false;
+                }
+            }
+        }
+
+        function createSound(frequency, duration, type = 'sine', volume = 0.2) {
+            if (!soundEnabled || !audioContext) return;
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+            gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.01);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
+            oscillator.type = type;
+            oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration);
+        }
+
+        function playButtonSound() { createSound(440, 0.05, 'triangle'); }
+        function playCorrectSound() { setTimeout(() => createSound(523.25, 0.1, 'sine'), 0); setTimeout(() => createSound(659.26, 0.2, 'sine'), 100); }
+        function playIncorrectSound() { createSound(164.81, 0.2, 'sawtooth'); }
+        function playTimerWarningSound() { createSound(880, 0.05, 'square', 0.1); }
+        function playGameOverSound() {
+            setTimeout(() => createSound(392, 0.2, 'sine'), 0);
+            setTimeout(() => createSound(330, 0.2, 'sine'), 200);
+            setTimeout(() => createSound(261, 0.4, 'sine'), 400);
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const toggle = document.getElementById('soundToggle');
+            if (soundEnabled) {
+                toggle.textContent = '🔊';
+                toggle.classList.remove('muted');
+                initAudio();
+            } else {
+                toggle.textContent = '🔇';
+                toggle.classList.add('muted');
+            }
+        }
+
+        const allQuestions = [
+            { 
+                text: "Cuando estamos dentro de un vehículo detenido y se produce una partida brusca, nuestro cuerpo tiende a “irse hacia atrás”. Esto se explica por:", 
+                equation: "", 
+                options: ["Ley de inercia.", "La ley de acción y reacción.", "La segunda ley de Newton.", "La ley de conversación de energía.", "La ley de conservación del momento lineal."], 
+                correct: 0, 
+                explanation: "La ley de inercia (Primera Ley de Newton) establece que un cuerpo en reposo tiende a permanecer en reposo. Al arrancar el auto, tu cuerpo se 'resiste' a cambiar su estado de reposo, creando la sensación de irse hacia atrás.",
+                summary: '<strong>Grupo 1: Principios Fundamentales (1ª y 3ª Ley de Newton)</strong><p>La <b>Primera Ley (Inercia)</b> dice que un objeto mantiene su estado de movimiento (reposo o MRU) a menos que una fuerza neta actúe sobre él. La <b>Tercera Ley (Acción-Reacción)</b> establece que para toda acción hay una reacción igual y opuesta, actuando sobre cuerpos diferentes.</p>'
+            },
+            { text: "Respecto de las leyes de Newton, podemos mencionar que:<br>I. La primera ley de Newton sostiene que siempre que a un cuerpo que no se le apliquen fuerzas estará siempre en reposo.<br>II. La primera ley de Newton sostiene que un cuerpo que se encuentra en reposo o en movimiento con velocidad constante, permanecerá en ese estado a menos que se le aplique una fuerza.<br>III. La aceleración de un cuerpo es directamente proporcional a su masa e inversamente proporcional a la fuerza neta aplicada.", equation: "", options: ["Solo I.", "Solo II.", "Solo III.", "Solo I y III.", "I, II y III."], correct: 1, explanation: "La afirmación II es la definición correcta de la Primera Ley. La I es incorrecta porque un cuerpo sin fuerza neta también puede estar en movimiento rectilíneo uniforme (MRU). La III describe la Segunda Ley incorrectamente (la aceleración es proporcional a la fuerza e inversamente proporcional a la masa)." },
+            { text: "La fuerza neta que se ejerce sobre un cuerpo es nula. ¿Cuál(es) de las siguientes afirmaciones es (son) siempre correcta(s)?<br>I. La aceleración del cuerpo es cero.<br>II. La velocidad del cuerpo es constante.<br>III. La variación de su posición con respecto al tiempo es constante.", equation: "", options: ["Solo I", "Solo II", "Solo III", "Solo II y III", "I, II y III"], correct: 4, explanation: "Si la fuerza neta es nula (1ª Ley de Newton), entonces la aceleración es cero (I es correcta). Si la aceleración es cero, la velocidad no cambia, es decir, es constante (II es correcta). La 'variación de la posición con respecto al tiempo' es la definición de velocidad, por lo que si la velocidad es constante, esta variación también lo es (III es correcta). Por lo tanto, las tres son correctas." },
+            { text: "Respecto de la tercera ley de Newton de acción y reacción, es incorrecto afirmar que:", equation: "", options: ["Son dos fuerzas de igual magnitud, pero de sentido opuesto.", "Ambas fuerzas, de acción y reacción, se aplican sobre cuerpos distintos.", "Las dos fuerzas actúan en la misma dirección.", "Tanto la acción como la reacción son fuerzas que se miden en Newton.", "La normal y el peso forman un par acción-reacción."], correct: 4, explanation: "La afirmación E es incorrecta. La normal y el peso, aunque a veces son iguales y opuestas, actúan sobre el MISMO cuerpo. Un par acción-reacción siempre actúa sobre cuerpos DIFERENTES. La reacción al peso (fuerza de la Tierra sobre el objeto) es la fuerza del objeto sobre la Tierra." },
+            { text: "Un camión al pasar por un semáforo, choca a una pelota de plástico, lanzándola muy lejos de la calle. En esta situación siempre se cumple que:", equation: "", options: ["En la interacción, la fuerza ejercida por el camión es de mayor magnitud que la ejercida por la pelota.", "En la interacción, la fuerza ejercida por la pelota es de mayor magnitud que la ejercida por el camión.", "En la interacción, la magnitud de la fuerza que ejerce el camión y la pelota es la misma.", "Dependiendo de la velocidad en que ocurra el choque, será mayor o menor la magnitud de la fuerza."], correct: 2, explanation: "Por la Tercera Ley de Newton (acción y reacción), la fuerza que el camión ejerce sobre la pelota es de igual magnitud y sentido opuesto a la fuerza que la pelota ejerce sobre el camión. La gran diferencia en sus aceleraciones se debe a sus masas tan distintas (\\( a = F/m \\))." },
+            { 
+                text: "¿Cuál de las siguientes unidades representa una unidad de fuerza? Siendo M magnitud de masa, T magnitud de tiempo y L de longitud.", 
+                equation: "", 
+                options: ["MLT", "\\(ML / T^2\\)", "\\(T^2 / ML\\)", "\\(M^2L / T\\)", "LTM"], 
+                correct: 1, 
+                explanation: "Según la Segunda Ley de Newton, Fuerza = masa × aceleración. Las unidades dimensionales son \\( [Fuerza] = [Masa] \\times [Aceleración] = M \\times (L/T^2) \\), lo que se escribe como \\( ML/T^2 \\) o \\( MLT^{-2} \\).",
+                summary: '<strong>Grupo 2: La Ecuación del Movimiento (2ª Ley de Newton) y Fuerzas Comunes</strong><p>La <b>Segunda Ley de Newton</b> es la fórmula clave: <code>ΣF = m · a</code>. Relaciona la fuerza neta (ΣF) con la masa (m) y la aceleración (a). Recuerda dibujar siempre las fuerzas comunes: <b>Peso (P = m·g)</b>, <b>Normal (N)</b> y <b>Tensión (T)</b>.</p>'
+            },
+            { text: "¿Cuál es la masa de un cuerpo que pesa 200 N en la superficie terrestre? (Considere g = 10 m/s²)", equation: "\\( P = m \\cdot g \\)", options: ["12 kg", "120 kg", "20 kg", "2,5 kg", "Otro valor"], correct: 2, explanation: "Usando la fórmula del peso \\( P = m \\cdot g \\), despejamos la masa: \\( m = P/g \\). Reemplazando los valores: \\( m = 200 N / 10 m/s^2 = 20 kg \\)." },
+            { text: "Un carro de 2 kg es empujado de manera horizontal. Su rapidez cambia uniformemente de 2 m/s a 8 m/s en dos segundos. La magnitud de la fuerza neta sobre el carro en ese tiempo es:", equation: "\\( F_{neta} = m \\cdot a \\)", options: ["0,667 N", "1,5 N", "2 N", "4 N", "6 N"], correct: 4, explanation: "Primero, calculamos la aceleración: \\( a = (v_f - v_i) / t = (8 m/s - 2 m/s) / 2 s = 3 m/s^2 \\). Luego, aplicamos la Segunda Ley de Newton: \\( F = m \\cdot a = 2 kg \\cdot 3 m/s^2 = 6 N \\)." },
+            { text: "Un auto de 1000 kg de masa se mueve como indica su gráfico v/t. ¿Cuál será la fuerza neta que actúa sobre él?", equation: '<svg viewBox="0 0 200 150" xmlns="http://www.w3.org/2000/svg" style="max-width:250px;"><path d="M 30 130 L 180 130 M 30 130 L 30 10" stroke="black" stroke-width="2" fill="none" /><text x="185" y="135" font-size="12">T(s)</text><text x="5" y="75" transform="rotate(-90, 15, 75)" font-size="12">V(m/s)</text><line x1="30" y1="130" x2="110" y2="30" stroke="#667eea" stroke-width="3"/><path d="M 110 30 L 110 130 M 110 30 L 30 30" stroke="grey" stroke-width="1" stroke-dasharray="4"/><text x="106" y="145" font-size="12">4</text><text x="10" y="35" font-size="12">12</text></svg>', options: ["3000 N", "5000 N", "2000 N", "1000 N", "10000 N"], correct: 0, explanation: "La aceleración es la pendiente del gráfico v/t. \\( a = \\Delta v / \\Delta t = (12 m/s - 0 m/s) / (4 s - 0 s) = 3 m/s^2 \\). Luego, usamos \\( F = m \\cdot a = 1000 kg \\cdot 3 m/s^2 = 3000 N \\)." },
+            { text: "Un cuerpo de 5 kg de masa cuelga de una cuerda. Si la tensión de la cuerda es de 50 N, la aceleración del cuerpo es: (use g = 10 m/s²)", equation: "\\( \\sum F = T - P = m \\cdot a \\)", options: ["0,5 m/s²", "5,5 m/s²", "0 m/s²", "5,0 m/s²", "4,5 m/s²"], correct: 2, explanation: "Las fuerzas que actúan son la Tensión (T) hacia arriba y el Peso (P) hacia abajo. El peso es \\( P = m \\cdot g = 5 kg \\cdot 10 m/s^2 = 50 N \\). La fuerza neta es \\( F_{neta} = T - P = 50 N - 50 N = 0 \\). Como \\( F_{neta} = m \\cdot a \\), si la fuerza neta es 0, la aceleración también debe ser 0." },
+            { 
+                text: "Entre el coeficiente de roce estático \\(\\mu_e\\) y el roce dinámico \\(\\mu_c\\), normalmente se cumple la siguiente relación:", 
+                equation: "", 
+                options: ["\\(\\mu_e > \\mu_c\\)", "\\(\\mu_e < \\mu_c\\)", "\\(\\mu_e = \\mu_c\\)", "\\(\\mu_e = 2\\mu_c\\)", "\\(\\mu_e = \\mu_c + 1\\)"], 
+                correct: 0, 
+                explanation: "Generalmente, se necesita más fuerza para empezar a mover un objeto (vencer el roce estático máximo) que para mantenerlo en movimiento (vencer el roce cinético). Por lo tanto, el coeficiente de roce estático (\\(\\mu_e\\)) es mayor que el coeficiente de roce cinético (\\(\\mu_c\\)).",
+                summary: '<strong>Grupo 3: Fuerzas de Oposición (Roce)</strong><p>La <b>Fuerza de Roce (Fr)</b> se opone al movimiento y depende del coeficiente de roce (μ) y la fuerza Normal (N). El roce estático (cuando no se mueve) iguala a la fuerza aplicada hasta un máximo (<code>Fr ≤ μe·N</code>). Una vez en movimiento, el roce es cinético y constante (<code>Fr = μc·N</code>).</p>'
+            },
+            {
+                text: "A un bloque en reposo se le aplica una fuerza variable. El gráfico I muestra la fuerza de roce vs la fuerza aplicada. El gráfico II muestra la rapidez vs la fuerza aplicada. ¿Cuál es una conclusión correcta?",
+                equation: `<svg viewBox="0 0 480 200" xmlns="http://www.w3.org/2000/svg" style="max-width:500px;">
+                    <!-- Graph I -->
+                    <text x="85" y="190" font-weight="bold" font-size="12">Gráfico I</text>
+                    <path d="M 40 150 L 220 150 M 40 150 L 40 20" stroke="black" stroke-width="1.5" fill="none" />
+                    <text x="100" y="165" font-size="14">Fuerza aplicada (N)</text>
+                    <text x="5" y="85" transform="rotate(-90, 20, 85)" font-size="14">Fuerza de roce (N)</text>
+                    <path d="M 40 150 L 140 50" stroke="#E63946" stroke-width="3"/>
+                    <path d="M 140 50 L 210 50" stroke="#1D3557" stroke-width="3"/>
+                    <path d="M 140 50 L 140 150 M 140 50 L 40 50" stroke="grey" stroke-width="1" stroke-dasharray="3"/>
+                    <text x="135" y="165" font-size="12">10</text><text x="25" y="55" font-size="12">10</text>
+                    <text x="35" y="165" font-size="12">0</text>
+                    <text x="140" y="45" font-size="14" fill="#E63946">Q</text><text x="42" y="148" font-size="14">P</text><text x="215" y="45" font-size="14" fill="#1D3557">R</text>
+                    <!-- Graph II -->
+                    <text x="305" y="190" font-weight="bold" font-size="12">Gráfico II</text>
+                    <path d="M 260 150 L 440 150 M 260 150 L 260 20" stroke="black" stroke-width="1.5" fill="none" />
+                    <text x="320" y="165" font-size="14">Fuerza aplicada (N)</text>
+                    <text x="225" y="85" transform="rotate(-90, 240, 85)" font-size="14">Rapidez (m/s)</text>
+                    <path d="M 260 150 L 360 150" stroke="#E63946" stroke-width="3"/>
+                    <path d="M 360 150 C 370 150, 400 140, 435 50" stroke="#1D3557" stroke-width="3" fill="none"/>
+                    <path d="M 435 50 L 435 150" stroke="grey" stroke-width="1" stroke-dasharray="3"/>
+                    <text x="355" y="165" font-size="12">10</text>
+                    <text x="255" y="165" font-size="12">0</text>
+                    <text x="360" y="145" font-size="14" fill="#E63946">Q</text><text x="262" y="148" font-size="14">P</text><text x="438" y="45" font-size="14" fill="#1D3557">R</text>
+                </svg>`,
+                options: [
+                    "Entre P y Q, el cuerpo se encuentra en reposo dado que la fuerza aplicada tiene la misma magnitud que la fuerza de roce.",
+                    "Entre Q y R, el cuerpo se encuentra en reposo dado que la fuerza de roce es siempre la misma.",
+                    "Entre Q y R, el cuerpo se encuentra en movimiento bajo roce estático dado que la fuerza de roce es siempre la misma.",
+                    "Entre P y Q, el cuerpo se encuentra en movimiento bajo roce cinético dado que, a medida que aumenta la fuerza aplicada, aumenta también la fuerza de roce."
+                ],
+                correct: 0,
+                explanation: "Analizando los tramos: <b>Entre P y Q:</b> Gráfico I muestra que la fuerza de roce es igual a la fuerza aplicada. Gráfico II muestra que la rapidez es cero. Por lo tanto, el cuerpo está en reposo y el roce es estático. <b>Entre Q y R:</b> Gráfico II muestra que la rapidez aumenta, por lo que el cuerpo está en movimiento. La opción A describe correctamente el tramo P-Q."
+            },
+            { text: "Un bloque de madera de 5 kg descansa sobre una mesa con roce (\\(\\mu_e = 0,7\\)). Si se aplica una fuerza horizontal de 20 N, la fuerza de roce estático es: (g = 10 m/s²)", equation: "\\( F_{roce} \\leq \\mu_e \\cdot N \\)", options: ["250 N", "175 N", "50 N", "35 N", "20 N"], correct: 4, explanation: "Primero calculamos la fuerza de roce estático MÁXIMA: \\( F_{r,max} = \\mu_e \\cdot N = \\mu_e \\cdot m \\cdot g = 0.7 \\cdot 5 kg \\cdot 10 m/s^2 = 35 N \\). Como la fuerza aplicada (20 N) es MENOR que la máxima, el cuerpo no se mueve. El roce estático iguala a la fuerza aplicada para mantener el equilibrio. Por lo tanto, \\( F_r = 20 N \\)." },
+            { text: "Se tiene un cuerpo de masa 10 kg sobre una superficie con \\(\\mu_e = 0,2\\). ¿Cuál es la fuerza horizontal máxima que se puede aplicar sin que el cuerpo se mueva? (g = 10 m/s²)", equation: "\\( F_{max} = \\mu_e \\cdot N \\)", options: ["2 N", "5 N", "10 N", "20 N", "40 N"], correct: 3, explanation: "La fuerza máxima que se puede aplicar sin mover el cuerpo es igual a la fuerza de roce estático máxima. \\( F_{max} = F_{r,max} = \\mu_e \\cdot N = \\mu_e \\cdot m \\cdot g = 0.2 \\cdot 10 kg \\cdot 10 m/s^2 = 20 N \\)." },
+            { text: "Un bloque de 4 kg a 5 m/s ingresa a una zona rugosa, avanza 2,5 m y se detiene. ¿Cuál es el coeficiente de roce cinético (\\(\\mu_c\\))? (g = 10 m/s²)", equation: '<svg viewBox="0 0 450 120" xmlns="http://www.w3.org/2000/svg" style="max-width:450px;"><line x1="10" y1="90" x2="440" y2="90" stroke="black" stroke-width="2"/><path fill="#f0f0f0" stroke="black" stroke-width="2" d="M 60 50 H 140 V 89 H 60 Z" /><text x="85" y="75" font-size="14">4 kg</text><path d="M150 55 L 210 55 M 180 50 L 180 60" stroke="black" /><text x="165" y="45" font-size="14">v = 5 m/s</text><text x="70" y="105" font-size="14">Zona lisa</text><text x="280" y="105" font-size="14">Zona rugosa</text><line x1="230" y1="90" x2="230" y2="20" stroke="black" stroke-dasharray="4"/><rect x="230" y="20" width="180" height="70" fill="url(#hatch)"/><defs><pattern id="hatch" patternUnits="userSpaceOnUse" width="8" height="8"><path d="M-2,2 l4,-4 M0,8 l8,-8 M6,10 l4,-4" stroke="#888" stroke-width="1"/></pattern></defs><path d="M230 80 L 410 80" stroke="black" stroke-width="1.5"/><path d="M230 80 l5 -5 v10 l-5 -5z M410 80 l-5 -5 v10 l5 -5z" fill="black"/><text x="310" y="70" font-size="14">2,5 m</text></svg>', options: ["0,2", "0,4", "0,5", "0,7", "0,9"], correct: 2, explanation: "1º (Cinemática): Hallamos la aceleración con \\(v_f^2 = v_i^2 + 2ad\\). Sabiendo que \\(v_f=0, v_i=5, d=2.5\\): \\(0^2 = 5^2 + 2 \\cdot a \\cdot 2.5 \\) → \\(0 = 25 + 5a\\) → \\(a = -5 m/s^2\\). 2º (Dinámica): La fuerza neta es el roce: \\(\\sum F = -F_r = ma\\). Sabemos que \\(F_r = \\mu_c \\cdot N = \\mu_c \\cdot m \\cdot g\\). Entonces: \\(-\\mu_c \\cdot m \\cdot g = m \\cdot a\\). Se cancela la masa 'm' y queda: \\(-\\mu_c \\cdot g = a\\) → \\(\\mu_c = -a/g = -(-5)/10 = 0.5\\)." },
+            { 
+                text: "En un dinamómetro se mide la fuerza de un resorte. Para una fuerza F, el estiramiento es Δx. Si la fuerza es 2F, el estiramiento:", 
+                equation: "\\( F = k \\cdot \\Delta x \\)", 
+                options: ["Disminuye a la mitad.", "Se mantiene igual.", "Aumenta al doble.", "Aumenta al cuádruple.", "Se reduce a la cuarta parte."], 
+                correct: 2, 
+                explanation: "Según la Ley de Hooke (\\(F = k \\cdot \\Delta x\\)), la fuerza es directamente proporcional al estiramiento (\\(\\Delta x\\)). Si la fuerza se duplica (de F a 2F), el estiramiento también debe duplicarse para mantener la igualdad.",
+                summary: '<strong>Grupo 4: Resortes y Diseño Experimental</strong><p>La <b>Fuerza Elástica</b> en un resorte (<code>F = -k·Δx</code>) se opone a su deformación y depende de la constante del resorte (k). En los experimentos, recuerda controlar las variables: cambia solo una cosa a la vez (independiente) y mide su efecto (dependiente).</p>'
+            },
+            { text: "En un dinamómetro casero, para una fuerza de 50 N el estiramiento del resorte es de 10 cm. La constante de elasticidad del resorte es:", equation: "", options: ["500 N/m", "500 N/cm", "50 N/m", "10 N/m", "5 N/m"], correct: 0, explanation: "La constante elástica k se calcula con \\( k = F/\\Delta x \\). Es crucial usar unidades del Sistema Internacional. \\(\\Delta x = 10 cm = 0,1 m\\). Entonces, \\( k = 50 N / 0,1 m = 500 N/m \\)." },
+            { text: "En un experimento se desea saber cómo varía la aceleración a medida que se aumenta la masa. Para estudiar correctamente esta relación, la variable que se debe controlar es:", equation: "", options: ["La fuerza neta.", "La masa.", "La aceleración.", "El peso."], correct: 0, explanation: "La relación es F=ma. Si quieres ver cómo 'a' depende de 'm' (\\(a = F/m\\)), debes mantener la Fuerza (F) constante. Esta es la variable controlada. La masa es la variable independiente (la que cambias) y la aceleración es la dependiente (la que mides)." },
+            { text: "Unos estudiantes sueltan objetos de distinta masa desde un edificio para medir el tiempo de caída. Para ellos, la variable independiente corresponde a:", equation: "", options: ["La fuerza neta.", "El peso.", "La aceleración de gravedad.", "La fuerza de roce con el aire."], correct: 1, explanation: "La variable independiente es aquella que el experimentador modifica para observar su efecto. En este caso, los estudiantes están cambiando la 'distinta masa' de los objetos. El peso (\\(P = m \\cdot g\\)) es directamente proporcional a la masa, por lo que es la manifestación directa de la variable que están cambiando." },
+            { text: "En una empresa, diseñan un experimento para conocer la relación entre constante de elasticidad (k) y deformación (Δx). Para esto cuelgan de diferentes resortes (k conocida), varios cuerpos de diferente masa. ¿Cómo se puede mejorar?", equation: "", options: ["Aumentando el número de resortes y cuerpos.", "Mejorando los instrumentos de medición.", "La masa debe ser una variable controlada.", "La constante de elasticidad debe ser una variable controlada."], correct: 3, explanation: "El procedimiento descrito es confuso porque varía dos cosas a la vez (k y masa). Para un buen diseño experimental, se debe cambiar solo una variable a la vez. La opción D propone el experimento estándar de la Ley de Hooke: usar un solo resorte (k controlada) y colgarle distintas masas para medir cómo varía la deformación con la fuerza." },
+            { text: "El gráfico representa la fuerza neta para un objeto que parte del reposo. ¿Para qué tiempo la velocidad del objeto es mayor?", equation: '<svg viewBox="0 0 350 150" xmlns="http://www.w3.org/2000/svg" style="max-width:350px;"><path d="M 20 130 L 330 130 M 20 130 L 20 10" stroke="black" stroke-width="2" fill="none" /><text x="335" y="135" font-size="12">t(s)</text><text x="5" y="20" font-size="12">F[N]</text><path d="M 20 130 L 120 30 L 220 30 L 320 130" stroke="#E63946" stroke-width="3" fill="#E63946" fill-opacity="0.2" /><path d="M 120 30 L 120 130 M 220 30 L 220 130" stroke="grey" stroke-width="1" stroke-dasharray="4"/><text x="115" y="145" font-size="12">20</text><text x="215" y="145" font-size="12">40</text><text x="315" y="145" font-size="12">60</text><text x="5" y="35" font-size="12">10</text></svg>', options: ["0 segundos.", "20 segundos.", "40 segundos.", "60 segundos.", "No se puede determinar."], correct: 3, explanation: "El cambio en la velocidad es proporcional al impulso, que corresponde al área bajo la curva F-t. Como la fuerza neta es siempre positiva (o cero), el objeto siempre está acelerando o manteniendo su velocidad. Por lo tanto, la velocidad será máxima al final del intervalo de tiempo, en t = 60 segundos, cuando ha acumulado todo el impulso posible." }
+        ];
+
+
+        function initGame() {
+            currentQuestion = 0;
+            score = 0;
+            correctAnswers = 0;
+            questionAnswered = false;
+            
+            selectedQuestions = allQuestions;
+            
+            document.getElementById('score').textContent = score;
+            document.getElementById('correct').textContent = correctAnswers;
+            
+            // Show the main quiz layout and hide the welcome screen
+            document.getElementById('quiz-layout-container').style.display = 'flex';
+            document.getElementById('game-over-container').style.display = 'none';
+            document.getElementById('welcome-screen').style.display = 'none';
+
+            loadQuestion();
+            startTimer(true);
+        }
+
+        function loadQuestion() {
+            if (currentQuestion >= selectedQuestions.length) {
+                endGame();
+                return;
+            }
+
+            questionAnswered = false;
+            
+            const question = selectedQuestions[currentQuestion];
+            const summaryCard = document.getElementById('summary-card');
+            const summaryContainer = document.getElementById('summary-container');
+
+            if (question.summary) {
+                summaryContainer.innerHTML = question.summary;
+                summaryCard.style.display = 'block';
+            } else {
+                summaryCard.style.display = 'none';
+            }
+            
+            document.getElementById('question-number').textContent = `Pregunta ${currentQuestion + 1} de ${selectedQuestions.length}`;
+            document.getElementById('question-text').innerHTML = question.text;
+            const equationDiv = document.getElementById('equation');
+            equationDiv.innerHTML = question.equation;
+
+            if (question.equation.trim() === '') {
+                equationDiv.style.display = 'none';
+            } else {
+                equationDiv.style.display = 'block';
+            }
+
+            const progress = ((currentQuestion) / selectedQuestions.length) * 100;
+            document.getElementById('progress').style.width = progress + '%';
+            
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+            
+            question.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.className = 'option-button';
+                button.innerHTML = `<span class="option-letter">${String.fromCharCode(65 + index)}</span><span class="option-text">${option}</span><span class="correct-emoji"></span>`;
+                button.onclick = () => selectAnswer(index);
+                optionsContainer.appendChild(button);
+            });
+            
+            document.getElementById('explanation').classList.remove('show');
+            document.getElementById('next-btn').style.display = 'none';
+            
+            if (typeof MathJax !== 'undefined' && MathJax.typesetPromise) {
+                const questionTextElement = document.getElementById('question-text');
+                MathJax.typesetPromise([questionTextElement, equationDiv, optionsContainer, summaryContainer]);
+            }
+        }
+
+        function updateScoreWithAnimation(targetScore) {
+            const scoreElement = document.getElementById('score');
+            const startScore = parseInt(scoreElement.textContent);
+            if (startScore >= targetScore) return;
+            
+            const increment = 1;
+            const duration = 400;
+            const stepTime = Math.max(1, Math.floor(duration / (targetScore - startScore)));
+
+            let currentScore = startScore;
+            const counter = setInterval(() => {
+                currentScore += increment;
+                scoreElement.textContent = currentScore;
+                if (currentScore >= targetScore) {
+                    clearInterval(counter);
+                    scoreElement.textContent = targetScore;
+                }
+            }, stepTime);
+        }
+        
+        function animateScorePoint() {
+            const container = document.getElementById('score-animation-container');
+            const emoji = document.createElement('div');
+            emoji.className = 'score-plus-emoji';
+            emoji.textContent = '🪙+10';
+            container.appendChild(emoji);
+            
+            setTimeout(() => {
+                emoji.remove();
+            }, 1000);
+        }
+
+        function selectAnswer(selectedIndex) {
+            if (questionAnswered) return;
+            
+            questionAnswered = true;
+            clearInterval(timerInterval);
+            
+            const question = selectedQuestions[currentQuestion];
+            const options = document.querySelectorAll('.option-button');
+            
+            options.forEach((option, index) => {
+                option.classList.add('disabled');
+                if (index === question.correct) {
+                    option.classList.add('correct');
+                    option.querySelector('.correct-emoji').textContent = '✅';
+                } else if (index === selectedIndex) {
+                    option.classList.add('incorrect');
+                }
+            });
+            
+            if (selectedIndex === question.correct) {
+                playCorrectSound();
+                animateScorePoint();
+                const newScore = score + 10;
+                updateScoreWithAnimation(newScore);
+                score = newScore;
+                correctAnswers++;
+                document.getElementById('correct').textContent = correctAnswers;
+            } else {
+                playIncorrectSound();
+            }
+            
+            const explanationTextElement = document.getElementById('explanation-text');
+            explanationTextElement.innerHTML = question.explanation;
+            document.getElementById('explanation').classList.add('show');
+            
+            if (typeof MathJax !== 'undefined' && MathJax.typesetPromise) {
+                MathJax.typesetPromise([explanationTextElement]);
+            }
+
+            document.getElementById('next-btn').style.display = 'inline-block';
+        }
+
+        function nextQuestion() {
+            playButtonSound();
+            currentQuestion++;
+            loadQuestion();
+            startTimer(true);
+        }
+
+        function updateTimerAppearance() {
+            const timerControl = document.getElementById('timer-control');
+            timerControl.classList.remove('ok', 'medium-warning', 'low-warning', 'paused');
+
+            if (isPaused) {
+                timerControl.classList.add('paused');
+                document.getElementById('timer').textContent = '⏸️';
+            } else {
+                document.getElementById('timer').textContent = timeLeft;
+                if (timeLeft <= 30) {
+                    timerControl.classList.add('low-warning');
+                } else if (timeLeft <= 59) {
+                    timerControl.classList.add('medium-warning');
+                } else {
+                    timerControl.classList.add('ok');
+                }
+                const progress = (120 - timeLeft) / 120 * 360;
+                timerControl.querySelector('.timer-circle').style.setProperty('--progress', progress + 'deg');
+            }
+        }
+
+        function startTimer(resetTime = true) {
+            clearInterval(timerInterval);
+            if (resetTime) {
+                timeLeft = 120;
+                isPaused = false;
+            }
+            
+            updateTimerAppearance();
+            if (isPaused) return;
+
+            timerInterval = setInterval(() => {
+                if (isPaused) {
+                    clearInterval(timerInterval);
+                    return;
+                }
+                timeLeft--;
+                updateTimerAppearance();
+                
+                if (timeLeft > 0 && timeLeft <= 10) {
+                    playTimerWarningSound();
+                }
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    if (!questionAnswered) {
+                        selectAnswer(-1); // Mark as incorrect if time runs out
+                    }
+                    document.getElementById('next-btn').style.display = 'inline-block';
+                }
+            }, 1000);
+        }
+
+        function toggleTimerPause() {
+            if (questionAnswered) return;
+            isPaused = !isPaused;
+            updateTimerAppearance();
+
+            if (isPaused) {
+                clearInterval(timerInterval);
+            } else {
+                startTimer(false); // Resume timer
+            }
+        }
+
+        function endGame() {
+            clearInterval(timerInterval);
+            playGameOverSound();
+            document.getElementById('quiz-layout-container').style.display = 'none';
+            document.getElementById('game-over-container').style.display = 'block';
+            document.getElementById('game-over').classList.add('show');
+            
+            const percentage = (correctAnswers / selectedQuestions.length) * 100;
+            document.getElementById('final-score').textContent = `${correctAnswers}/${selectedQuestions.length}`;
+            
+            let performanceClass = '';
+            let performanceText = '';
+            
+            if (percentage >= 90) { performanceClass = 'performance-excellent'; performanceText = '¡Excelente! Dominas las Leyes de Newton.'; }
+            else if (percentage >= 70) { performanceClass = 'performance-good'; performanceText = '¡Muy bien! Tienes un sólido entendimiento.'; }
+            else if (percentage >= 50) { performanceClass = 'performance-needs-improvement'; performanceText = 'Bien, pero puedes mejorar con más práctica.'; }
+            else { performanceClass = 'performance-poor'; performanceText = 'Necesitas repasar los conceptos básicos.'; }
+            
+            const messageElement = document.getElementById('performance-message');
+            messageElement.textContent = performanceText;
+            messageElement.className = 'performance-message ' + performanceClass;
+        }
+
+        function restartGame() {
+            playButtonSound();
+            document.getElementById('game-over-container').style.display = 'none';
+            document.getElementById('welcome-screen').style.display = 'block';
+        }
+
+        // --- Event Listeners ---
+        document.getElementById('start-btn').addEventListener('click', () => {
+            initAudio(); // Initialize audio on the first user gesture
+            playButtonSound();
+            initGame();
+        });
+        document.getElementById('timer-control').addEventListener('click', toggleTimerPause);
+
+    </script>
+</body>
+</html>
